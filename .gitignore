@@ -1,0 +1,3 @@
+postgres-data
+__pycache__
+migrations

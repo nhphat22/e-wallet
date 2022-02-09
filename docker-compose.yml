@@ -1,0 +1,38 @@
+version: '2.2.3'
+
+services:
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      STAGE: test
+      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://test:test@db/test
+      FLASK_APP: main
+      FLASK_DEBUG: 1 
+      FLASK_ENV: development
+    networks:
+      - default
+    ports:
+      - 8000:5000
+    command: /bin/sh -c "python3 main.py create_db;\
+                        python3 main.py db init;\
+                        python3 main.py db migrate;\
+                        python3 main.py runserver --host=0.0.0.0"
+    volumes:
+      - "./:/server"
+    restart: always
+
+  db:
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    image: postgres:latest
+    networks:
+      - default
+    ports:
+      - 5405:5432
+    restart: always
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
