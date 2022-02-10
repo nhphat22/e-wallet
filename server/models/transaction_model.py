@@ -9,7 +9,7 @@ class Transaction(db.Model):
     merchantId = db.Column(UUID(as_uuid=True), db.ForeignKey('merchants.merchantId'), default=uuid4, nullable=False)
     incomeAccount = db.Column(UUID(as_uuid=True), db.ForeignKey('accounts.accountId'), default=uuid4, nullable=False)
     outcomeAccount = db.Column(UUID(as_uuid=True), db.ForeignKey('accounts.accountId'), default=uuid4, nullable=False)
-    amount = db.Column(db.Double, nullable=False)
+    amount = db.Column(db.Float, nullable=False)
     extraData = db.Column(db.String(255))
     signature = db.Column(db.String(255))
     status = db.Column(db.Enum("CREATE", "CONFIRM", "VERIFY", "CANCEL", "EXPIRE", "SUCCESS", 

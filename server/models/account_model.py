@@ -8,18 +8,23 @@ class Account(db.Model):
 
     accountId = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     accountType = db.Column(db.Enum("merchant", "personal", "issuer", name="acc_type", create_type=False), nullable=False)
+    balance = db.Column(db.Float, nullable=False)
 
     def __init__(self, accountType):
         self.accountType = accountType
+        self.balance = 0
+    
+    def topup(self, amount):
+        self.balance += amount
 
-    def encode_auth_token(self, accountId):
+    def encode_auth_token(self, accountId, accountType):
         """
         Generates the Auth Token
-        :return: string
         """
         try:
             payload = {
-                'sub': accountId
+                'accountId': accountId,
+                'accountType': accountType
             }
             return jwt.encode(
                 payload,
@@ -34,7 +39,6 @@ class Account(db.Model):
         """
         Validates the auth token
         :param auth_token:
-        :return: integer|string
         """
         try:
             payload = jwt.decode(
@@ -42,37 +46,8 @@ class Account(db.Model):
                 'SECRET_KEY',
                 algorithms='HS256'
             )
-            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
-            if is_blacklisted_token:
-                return 'Token blacklisted. Please log in again.'
-            else:
-                return payload['sub']
+            return payload
         except jwt.ExpiredSignatureError:
             return 'Signature expired. Please log in again.'
         except jwt.InvalidTokenError:
             return 'Invalid token. Please log in again.'
-
-class BlacklistToken(db.Model):
-    """
-    Token Model for storing JWT tokens
-    """
-    __tablename__ = 'blacklist_tokens'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    token = db.Column(db.String(500), unique=True, nullable=False)
-    blacklisted_on = db.Column(db.DateTime, nullable=False)
-
-    def __init__(self, token):
-        self.token = token
-
-    def __repr__(self):
-        return '<id: token: {}'.format(self.token)
-
-    @staticmethod
-    def check_blacklist(auth_token):
-        # check whether auth token has been blacklisted
-        res = BlacklistToken.query.filter_by(token=str(auth_token)).first()
-        if res:
-            return True
-        else:
-            return False

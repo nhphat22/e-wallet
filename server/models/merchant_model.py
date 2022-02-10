@@ -1,4 +1,3 @@
-from sqlalchemy import ForeignKey
 from server.database import db
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -10,6 +9,7 @@ class Merchant(db.Model):
     accountId = db.Column(UUID(as_uuid=True), db.ForeignKey('accounts.accountId'), default=uuid4, nullable=False)
     merchantName = db.Column(db.String(200), nullable=False)
     merchantUrl = db.Column(db.String(200), nullable=False)
+    apiKey = db.Column(UUID(as_uuid=True), default=uuid4, nullable=False)
 
     def __init__(self, accountId, merchantName, merchantUrl):
         self.accountId = accountId
