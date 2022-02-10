@@ -1,8 +1,6 @@
 from server.database import db
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
-import merchant_model
-
 
 class Transaction(db.Model):
     __tablename__ = "transactions"
