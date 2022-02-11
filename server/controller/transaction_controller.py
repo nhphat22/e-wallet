@@ -33,8 +33,8 @@ class CreateTransactionAPI(MethodView):
             signature=data["signature"]
         )
         # insert the transaction
-        # db.session.add(transaction)
-        # db.session.commit()
+        db.session.add(transaction)
+        db.session.commit()
         responseObject = {
             'status': 'success',
             'data': {
