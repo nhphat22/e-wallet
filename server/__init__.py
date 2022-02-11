@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-from server.auth.views import auth_blueprint
+from server.routes import auth_blueprint
 
 
 app = Flask(__name__)
