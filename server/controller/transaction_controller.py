@@ -32,6 +32,7 @@ class CreateTransactionAPI(MethodView):
             amount=data["amount"],
             incomeAccount=merchant.accountId,
             outcomeAccount=None,
+            extraData=data["extraData"],
             signature=data["signature"]
         )
         # insert the transaction
@@ -136,13 +137,13 @@ class CancelTransactionAPI(MethodView):
         else:
             try:
                 transaction = Transaction.query.filter_by(transactionId=post_data["transactionId"]).first()
-                if transaction.status == "CANCELLED":
+                if transaction.status == "CANCELED":
                     responseObject = {
                         'status': 'success',
                         'message': 'Transaction had already been cancelled.'
                     }
                     return make_response(jsonify(responseObject)), 201
-                transaction.update_status("CANCELLED")
+                transaction.update_status("CANCELED")
                 db.session.commit()
                 responseObject = {
                     'status': 'success',

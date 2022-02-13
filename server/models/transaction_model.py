@@ -15,11 +15,12 @@ class Transaction(db.Model):
     status = db.Column(db.Enum("INITIALIZED", "CONFIRMED", "VERIFIED", "COMPLETED", "CANCELED", "EXPIRED", "FAILED", 
                         name="transaction_status", create_type=False), nullable=False)
 
-    def __init__(self, merchantId, incomeAccount, outcomeAccount, amount, signature):
+    def __init__(self, merchantId, incomeAccount, outcomeAccount, amount, extraData, signature):
         self.merchantId = merchantId
         self.incomeAccount = incomeAccount
         self.outcomeAccount = outcomeAccount
         self.amount = amount
+        self.extraData = extraData
         self.signature = signature
         self.status = "INITIALIZED"
 
