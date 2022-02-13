@@ -14,7 +14,7 @@ class Account(db.Model):
         self.accountType = accountType
         self.balance = 0
     
-    def topup(self, amount):
+    def update_balance(self, amount):
         self.balance += amount
 
     def encode_auth_token(self, accountId, accountType):

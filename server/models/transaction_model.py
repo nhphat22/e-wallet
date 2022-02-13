@@ -22,3 +22,14 @@ class Transaction(db.Model):
         self.amount = amount
         self.signature = signature
         self.status = "INITIALIZED"
+
+    def update_status(self, status):
+        self.status = status
+
+    def confirm_outcomeAccount(self, outcomeAccount):
+        self.outcomeAccount = outcomeAccount
+
+    def check_confirmation(self, balance):
+        if balance > self.amount:
+            return True
+        return False

@@ -77,7 +77,7 @@ class TopUpAPI(MethodView):
         else:
             try:
                 account = Account.query.filter_by(accountId=accountId).first()
-                account.topup(post_data.get('amount'))
+                account.update_balance(post_data.get('amount'))
                 db.session.commit()
                 responseObject = {
                     'status': 'success',

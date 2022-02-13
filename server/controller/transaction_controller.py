@@ -5,8 +5,10 @@ import hmac
 import json
 
 from server.database import db
+from server.middleware.jwt_helper import token_required
 from server.models.transaction_model import Transaction
 from server.models.merchant_model import Merchant
+from server.models.account_model import Account
 
 
 class CreateTransactionAPI(MethodView):
@@ -45,3 +47,112 @@ class CreateTransactionAPI(MethodView):
                 }
         }
         return make_response(jsonify(responseObject)), 201    
+
+class ConfirmTransactionAPI(MethodView):
+    @token_required
+    def post(self, current_acc):
+        post_data = request.get_json()
+        if not current_acc.accountType=="personal":
+            responseObject = {
+                'status': 'fail',
+                'message': 'You have not connected to an personal account. Please try again.'
+            }
+            return make_response(jsonify(responseObject)), 202 
+        else:
+            try:
+                transaction = Transaction.query.filter_by(transactionId=post_data["transactionId"]).first()
+                account = Account.query.filter_by(accountId=current_acc.accountId).first()
+                transaction.confirm_outcomeAccount(account.accountId)
+                db.session.commit()
+                if transaction.check_confirmation(account.balance):
+                    transaction.update_status("CONFIRMED")
+                    db.session.commit()
+                else:
+                    transaction.update_status("FAILED")
+                    db.session.commit()
+                responseObject = {
+                    'status': 'success',
+                    'message': 'Transaction has been confirmed.'
+                }
+                return make_response(jsonify(responseObject)), 201
+            except Exception as e:
+                responseObject = {
+                    'status': 'fail',
+                    'message': 'Some error occurred. Please try again.'
+                }
+                return make_response(jsonify(responseObject)), 401
+
+class VerifyTransactionAPI(MethodView):
+    @token_required
+    def post(self, current_acc):
+        post_data = request.get_json()
+        if not current_acc.accountType=="personal":
+            responseObject = {
+                'status': 'fail',
+                'message': 'You have not connected to an personal account. Please try again.'
+            }
+            return make_response(jsonify(responseObject)), 202 
+        else:
+            try:
+                transaction = Transaction.query.filter_by(transactionId=post_data["transactionId"]).first()
+                outcomeAccount = Account.query.filter_by(accountId=transaction.outcomeAccount).first()
+                incomeAccount = Account.query.filter_by(accountId=transaction.incomeAccount).first()
+                if transaction.status == "VERIFIED":
+                    responseObject = {
+                        'status': 'success',
+                        'message': 'Transaction had already been verified.'
+                    }
+                    return make_response(jsonify(responseObject)), 201
+                if transaction.check_confirmation(outcomeAccount.balance):
+                    transaction.update_status("VERIFIED")
+                    outcomeAccount.update_balance(-transaction.amount)
+                    incomeAccount.update_balance(transaction.amount)
+                    db.session.commit()
+                else:
+                    transaction.update_status("FAILED")
+                    db.session.commit()
+                responseObject = {
+                    'status': 'success',
+                    'message': 'Transaction has been verified.'
+                }
+                return make_response(jsonify(responseObject)), 201
+            except Exception as e:
+                responseObject = {
+                    'status': 'fail',
+                    'message': 'Some error occurred. Please try again.'
+                }
+                return make_response(jsonify(responseObject)), 401
+
+class CancelTransactionAPI(MethodView):
+    @token_required
+    def post(self, current_acc):
+        post_data = request.get_json()
+        if not current_acc.accountType=="personal":
+            responseObject = {
+                'status': 'fail',
+                'message': 'You have not connected to an personal account. Please try again.'
+            }
+            return make_response(jsonify(responseObject)), 202 
+        else:
+            try:
+                transaction = Transaction.query.filter_by(transactionId=post_data["transactionId"]).first()
+                if transaction.status == "CANCELLED":
+                    responseObject = {
+                        'status': 'success',
+                        'message': 'Transaction had already been cancelled.'
+                    }
+                    return make_response(jsonify(responseObject)), 201
+                transaction.update_status("FAILED")
+                db.session.commit()
+                responseObject = {
+                    'status': 'success',
+                    'message': 'Transaction has been cancelled.'
+                }
+                return make_response(jsonify(responseObject)), 201
+            except Exception as e:
+                responseObject = {
+                    'status': 'fail',
+                    'message': 'Some error occurred. Please try again.'
+                }
+                return make_response(jsonify(responseObject)), 401
+                
