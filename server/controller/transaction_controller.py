@@ -142,7 +142,7 @@ class CancelTransactionAPI(MethodView):
                         'message': 'Transaction had already been cancelled.'
                     }
                     return make_response(jsonify(responseObject)), 201
-                transaction.update_status("FAILED")
+                transaction.update_status("CANCELLED")
                 db.session.commit()
                 responseObject = {
                     'status': 'success',
