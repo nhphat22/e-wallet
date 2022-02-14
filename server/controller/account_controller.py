@@ -63,7 +63,7 @@ class TopUpAPI(MethodView):
     """
     Get accountId and accountType token 
     """
-    @token_required
+    @token_required("issuer")
     def post(self, current_acc, accountId):
         # get the post data
         post_data = request.get_json()

@@ -12,45 +12,59 @@ from server.models.account_model import Account
 
 
 class CreateTransactionAPI(MethodView):
-    def post(self):
+    @token_required("merchant")
+    def post(self, current_merchant):
         data = request.form.to_dict()
-        merchant = Merchant.query.filter_by(merchantId=data["merchantId"]).first()
-        hash_key=str(merchant.apiKey)
-        signature = hmac.new(hash_key.encode('utf-8'), json.dumps({
-                'merchantId': data["merchantId"],
-                'amount': float(data["amount"]),
-                'extraData': data["extraData"]
-            }, sort_keys=True).encode('utf-8'), md5).hexdigest()
-        if data["signature"] != signature:
-            responseObject = {
+        try:
+            if str(current_merchant.merchantId) != data["merchantId"]:
+                responseObject = {
                     'status': 'fail',
-                    'message': 'Security alert!'
+                    'message': 'Token of merchant and merchant ID are not match.'
                 }
-            return make_response(jsonify(responseObject)), 400
-        transaction = Transaction(
-            merchantId=data["merchantId"],
-            amount=data["amount"],
-            incomeAccount=merchant.accountId,
-            outcomeAccount=None,
-            extraData=data["extraData"],
-            signature=data["signature"]
-        )
-        # insert the transaction
-        db.session.add(transaction)
-        db.session.commit()
-        responseObject = {
-            'status': 'success',
-            'data': {
-                    'merchantId': transaction.merchantId,
-                    'incomeAccount': transaction.incomeAccount,
-                    'amount': transaction.amount,
-                    'signature': transaction.signature
+                return make_response(jsonify(responseObject)), 401
+            merchant = Merchant.query.filter_by(merchantId=data["merchantId"]).first()
+            hash_key=str(merchant.apiKey)
+            signature = hmac.new(hash_key.encode('utf-8'), json.dumps({
+                    'merchantId': data["merchantId"],
+                    'amount': float(data["amount"]),
+                    'extraData': data["extraData"]
+                }, sort_keys=True).encode('utf-8'), md5).hexdigest()
+            if data["signature"] != signature:
+                responseObject = {
+                        'status': 'fail',
+                        'message': 'Security alert!'
+                    }
+                return make_response(jsonify(responseObject)), 400
+            transaction = Transaction(
+                merchantId=data["merchantId"],
+                amount=data["amount"],
+                incomeAccount=merchant.accountId,
+                outcomeAccount=None,
+                extraData=data["extraData"],
+                signature=data["signature"]
+            )
+            # insert the transaction
+            db.session.add(transaction)
+            db.session.commit()
+            responseObject = {
+                'status': 'success',
+                'data': {
+                        'merchantId': transaction.merchantId,
+                        'incomeAccount': transaction.incomeAccount,
+                        'amount': transaction.amount,
+                        'signature': transaction.signature
+                    }
+            }
+            return make_response(jsonify(responseObject)), 201    
+        except Exception as e:
+                responseObject = {
+                    'status': 'fail',
+                    'message': 'Some error occurred. Please try again.'
                 }
-        }
-        return make_response(jsonify(responseObject)), 201    
+                return make_response(jsonify(responseObject)), 401
 
 class ConfirmTransactionAPI(MethodView):
-    @token_required
+    @token_required("personal")
     def post(self, current_acc):
         post_data = request.get_json()
         if not current_acc.accountType=="personal":
@@ -84,7 +98,7 @@ class ConfirmTransactionAPI(MethodView):
                 return make_response(jsonify(responseObject)), 401
 
 class VerifyTransactionAPI(MethodView):
-    @token_required
+    @token_required("personal")
     def post(self, current_acc):
         post_data = request.get_json()
         if not current_acc.accountType=="personal":
@@ -125,7 +139,7 @@ class VerifyTransactionAPI(MethodView):
                 return make_response(jsonify(responseObject)), 401
 
 class CancelTransactionAPI(MethodView):
-    @token_required
+    @token_required("personal")
     def post(self, current_acc):
         post_data = request.get_json()
         if not current_acc.accountType=="personal":

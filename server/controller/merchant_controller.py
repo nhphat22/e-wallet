@@ -1,4 +1,3 @@
-from pdb import post_mortem
 from flask import request, make_response, jsonify
 from flask.views import MethodView
 
@@ -24,7 +23,6 @@ class SignUpAPI(MethodView):
         else:
             try:
                 merchant = Merchant(
-                    # accountId=request.url.split('/')[4],
                     accountId=accountId,
                     merchantName=post_data.get('merchantName'),
                     merchantUrl=post_data.get('merchantUrl')
