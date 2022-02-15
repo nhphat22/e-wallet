@@ -1,9 +1,7 @@
 from flask import Blueprint
 from server.controller.account_controller import AccountAPI, GetTokenAPI, TopUpAPI
 from server.controller.merchant_controller import SignUpAPI
-from server.controller.transaction_controller import CreateTransactionAPI, ConfirmTransactionAPI, VerifyTransactionAPI, CancelTransactionAPI
-from flask.views import MethodView
-from flask import request
+from server.controller.transaction_controller import CreateTransactionAPI, ConfirmTransactionAPI, VerifyTransactionAPI, CancelTransactionAPI, TransactionStatusAPI
 
 
 auth_blueprint = Blueprint('auth', __name__)
@@ -17,6 +15,7 @@ create_trans_view = CreateTransactionAPI.as_view('create_trans_api')
 confirm_trans_view = ConfirmTransactionAPI.as_view('confirm_trans_api')
 verify_trans_view = VerifyTransactionAPI.as_view('verify_trans_api')
 cancel_trans_view = CancelTransactionAPI.as_view('cancel_trans_api')
+test_view = TransactionStatusAPI.as_view('test_api')
 
 # add Rules for API Endpoints
 auth_blueprint.add_url_rule(
@@ -57,5 +56,10 @@ auth_blueprint.add_url_rule(
 auth_blueprint.add_url_rule(
     '/transaction/cancel',
     view_func=cancel_trans_view,
+    methods=['POST']
+)
+auth_blueprint.add_url_rule(
+    '/test',
+    view_func=test_view,
     methods=['POST']
 )

@@ -19,6 +19,7 @@ psycopg2-binary==2.9.3
 pycparser==2.17
 PyJWT==2.3.0
 python-editor==1.0.3
+requests==2.27.0
 six==1.10.0
 SQLAlchemy==1.4.31
 Werkzeug==0.11.13

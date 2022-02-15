@@ -29,7 +29,7 @@ def token_required(type):
                 else:
                     payload = jwt.decode(
                         auth_token, 
-                        str(cur.apiKey),
+                        'SECRET_KEY',
                         algorithms='HS256'
                     )
                     cur = Account.query.filter_by(accountId=payload['accountId']).first()
