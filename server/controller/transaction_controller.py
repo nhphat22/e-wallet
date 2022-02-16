@@ -1,9 +1,10 @@
 from flask.views import MethodView
-from flask import request, make_response, jsonify
+from flask import request, make_response, jsonify, current_app
 from hashlib import md5
 import hmac
 import json
 import requests
+import threading
 
 from server.database import db
 from server.middleware.jwt_helper import token_required
@@ -11,28 +12,14 @@ from server.models.transaction_model import Transaction
 from server.models.merchant_model import Merchant
 from server.models.account_model import Account
 
-class TransactionStatusAPI(MethodView):
-    def post(self):
-        post_data = request.get_json()
-        try:
-            transaction = Transaction.query.filter_by(transactionId=post_data["transactionId"]).first()
-            data = {
-                "orderId": transaction.extraData,
-                "status": transaction.status
-            }
-            r = requests.post('http://host.docker.internal:5000' + '/update_status_order', data=data)
-            
-            responseObject = {
-                'status': 'success',
-                'message': 'Status sent.'
-            }
-            return make_response(jsonify(responseObject)), 201    
-        except Exception as e:
-            responseObject = {
-                'status': 'fail',
-                'message': 'Some error occurred. Please try again.'
-            }
-            return make_response(jsonify(responseObject)), 401
+
+def check_completed_transaction(transactionId):
+    from server import app
+    with app.app_context():
+        transaction = Transaction.query.filter_by(transactionId=transactionId).first()
+        if transaction.status != "COMPLETED":
+            transaction.update_status("EXPIRED")
+            db.session.commit()
 
 class CreateTransactionAPI(MethodView):
     @token_required("merchant")
@@ -45,6 +32,7 @@ class CreateTransactionAPI(MethodView):
                     'message': 'Token of merchant and merchant ID are not match.'
                 }
                 return make_response(jsonify(responseObject)), 401
+
             merchant = Merchant.query.filter_by(merchantId=data["merchantId"]).first()
             hash_key=str(merchant.apiKey)
             signature = hmac.new(hash_key.encode('utf-8'), json.dumps({
@@ -58,6 +46,7 @@ class CreateTransactionAPI(MethodView):
                         'message': 'Security alert!'
                     }
                 return make_response(jsonify(responseObject)), 400
+            
             transaction = Transaction(
                 merchantId=data["merchantId"],
                 amount=data["amount"],
@@ -69,6 +58,9 @@ class CreateTransactionAPI(MethodView):
             # insert the transaction
             db.session.add(transaction)
             db.session.commit()
+
+            threading.Timer(20, check_completed_transaction, [transaction.transactionId]).start()
+            
             responseObject = {
                 'status': 'success',
                 'data': {
@@ -157,7 +149,7 @@ class VerifyTransactionAPI(MethodView):
                         'message': 'Transaction had already been verified.'
                     }
                     return make_response(jsonify(responseObject)), 201
-                if transaction.status == "FAILED":
+                if transaction.status in ["EXPIRED", "FAILED"]:
                     responseObject = {
                         'status': 'success',
                         'message': 'Transaction is failed.'
