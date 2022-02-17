@@ -13,6 +13,19 @@ from server.models.merchant_model import Merchant
 from server.models.account_model import Account
 
 
+def signature_hashing(key, data):
+    hash_key=str(key)
+    data_copy = data.copy()
+    data_copy.pop("signature")
+    for key, value in data_copy.items():
+        if data_copy[key].isdecimal():
+            data_copy[key] = int(value)
+        elif data_copy[key].replace('.', '', 1).isdecimal():
+            data_copy[key] = float(value)
+    signature = hmac.new(hash_key.encode('utf-8'), 
+            json.dumps(data_copy, sort_keys=True).encode('utf-8'), md5).hexdigest()
+    return signature
+
 def check_completed_transaction(transactionId):
     from server import app
     with app.app_context():
@@ -34,13 +47,8 @@ class CreateTransactionAPI(MethodView):
                 return make_response(jsonify(responseObject)), 401
 
             merchant = Merchant.query.filter_by(merchantId=data["merchantId"]).first()
-            hash_key=str(merchant.apiKey)
-            signature = hmac.new(hash_key.encode('utf-8'), json.dumps({
-                    'merchantId': data["merchantId"],
-                    'amount': float(data["amount"]),
-                    'extraData': data["extraData"]
-                }, sort_keys=True).encode('utf-8'), md5).hexdigest()
-            if data["signature"] != signature:
+            
+            if data["signature"] != signature_hashing(merchant.apiKey, data):
                 responseObject = {
                         'status': 'fail',
                         'message': 'Security alert!'
@@ -59,7 +67,7 @@ class CreateTransactionAPI(MethodView):
             db.session.add(transaction)
             db.session.commit()
 
-            threading.Timer(20, check_completed_transaction, [transaction.transactionId]).start()
+            threading.Timer(300, check_completed_transaction, [transaction.transactionId]).start()
             
             responseObject = {
                 'status': 'success',
